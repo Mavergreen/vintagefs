@@ -1,5 +1,5 @@
 #!/bin/sh
-# platform: 10.9 only -- 10.9's hdiutil still writes NDIF, and reads it with legacy-disabled=false, so it makes the
+# platform: macOS-only -- 10.9's hdiutil still writes NDIF, and reads it with legacy-disabled=false, so it makes the
 #           fixtures and says what each should read as. Run on the 10.9 VM; copy OUT back from the developer's side.
 # usage: make-ndif.sh OUT
 set -eu

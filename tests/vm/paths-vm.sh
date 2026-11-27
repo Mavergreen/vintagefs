@@ -15,7 +15,6 @@ crashes() { ls "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticRe
 norm() { sed -E -e 's#/dev/disk[0-9]+(s[0-9]+)?#/dev/diskN#g' -e "s#$W#W#g"; }
 sum() { md5 -q "$1"; }
 dev_of() { hdiutil attach -nomount "$@" 2>&1 | awk '/^\/dev\/disk/ {print $1; exit}'; }
-# writes MARK into sector 1500 of the attached image's raw device: 0 if the device took it
 poke() { printf 'VINTAGEFS-WRITE-TEST' | dd of="/dev/r${1#/dev/}" bs=512 seek=1500 conv=sync 2>/dev/null; }
 finder_info() { xattr -wx com.apple.FinderInfo "$(printf '%s' "$2" | xxd -p)000000000000000000000000000000000000000000000000" "$1"; }
 attach_msg() { hdiutil attach -nobrowse -readonly -nomount "$1" 2>&1 | tail -n 1 | norm; }

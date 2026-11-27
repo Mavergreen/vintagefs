@@ -1,0 +1,1 @@
+Disk images made by DiskCopy 4.2 and Disk Copy 6, which 10.9 refused as legacy, now open with hdiutil attach, or a double-click when they keep their file type.

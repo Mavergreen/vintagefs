@@ -1,11 +1,11 @@
 #!/bin/sh
-# platform: Linux or macOS with hfsutils (hformat, hmount, hcopy) and python3: makes the DiskCopy 4.2 fixtures --
+# platform: host-agnostic -- needs hfsutils (hformat, hmount, hcopy) and python3; makes the DiskCopy 4.2 fixtures --
 #           classic HFS floppies, one 800K, one 800K with tag bytes, one whose stored checksum is wrong -- and the raw
 #           800K volume they wrap, which 10.9 attaches without the plug-in
 # usage: make-dc42.sh OUT
 set -eu
 H="$(cd "$(dirname "$0")" && pwd)"; OUT="$1"; mkdir -p "$OUT"
-W="$(mktemp -d)"; trap 'rm -rf "$W"; humount 2>/dev/null || :' EXIT
+W="$(mktemp -d "${TMPDIR:-/tmp}/make-dc42.XXXXXX")"; trap 'rm -rf "$W"; humount 2>/dev/null || :' EXIT
 export HOME="$W"  # platform: hfsutils keeps its current-volume state in $HOME/.hcwd
 printf 'classic hfs check\n' > "$W/hello.txt"
 k=800

@@ -1,0 +1,8 @@
+Updater icon: NONE. vintagefs-updater ships the standard macOS application icon by explicit opt-in
+(ALLOW_GENERIC), so no artwork is embedded.
+
+Deliberate: the product has no mark of its own yet, and a stand-in .icns would be exactly the
+placeholder the icon gate rejects.
+
+Exit: when a Mavergreen vintagefs mark exists, add updater/vintagefs.icns, pass ICON to
+mavericks_add_updater_app, and drop ALLOW_GENERIC.
