@@ -6,6 +6,7 @@ own upstream: the plug-in and libvimg are Mavergreen code, versioned `YYYYMMDD.N
 | Ingredient | Pinned in | On a bump |
 |---|---|---|
 | clang22, the compiler and linker | `components/clang22/version`, `components/clang22/linux-sha256` | ✅ Renovate (`github-releases`); the PR says how to move `linux-sha256`. A new release |
+| The ADC decoder, `src/adc.c`, Mavergreen code copied from dmg-codecs's `src/adc.c` | this repo | ❌ untrackable as yet: a hand copy; a fix to either copy is made to both, until the two products share a home for it (a library in shipyard or Recaulk) |
 | MacOSX10.9 SDK, stevedore, packaging helpers | `Mavergreen/shipyard@v1` | ✅ Renovate's github-actions manager; `@v1` moves without a pin change |
 
 No upstream release notes: vintagefs is its own upstream.

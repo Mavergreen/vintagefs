@@ -25,7 +25,7 @@ fail=0
 for t in $tests; do
   # shellcheck disable=SC2086
   if $CC -std=c11 -D_DEFAULT_SOURCE -D_DARWIN_C_SOURCE -g -O1 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function \
-       -I"$R/src" "$R/tests/c/$t.c" $SRCS -o "$B/$t" 2> "$B/$t.build.log"; then
+       -I"$R/src" "$R/tests/c/$t.c" $SRCS -lpthread -o "$B/$t" 2> "$B/$t.build.log"; then
     "$B/$t" "$R/tests/fixtures" || fail=1
   else
     cat "$B/$t.build.log" >&2; echo "FAIL: $t did not build" >&2; fail=1
