@@ -31,6 +31,9 @@ static void valid_800k(void) {
   if (d) {
     CHECK_EQ(vimg_dc42_sectors(d), 1600);
     CHECK_EQ(vimg_dc42_checksum_ok(d), 1);
+    CHECK_EQ(vimg_dc42_writable(d), 1);
+    uint32_t st = 0, ca = 0; CHECK_EQ(vimg_dc42_sums(d, &st, &ca), 0);
+    CHECK_EQ(st, get32(p + 0x48)); CHECK_EQ(ca, st);
     uint8_t buf[1024]; CHECK_EQ(vimg_dc42_read(d, buf, 3, 2), 0);
     CHECK(memcmp(buf, p + 84 + 3 * 512, 1024) == 0);
     CHECK_EQ(vimg_dc42_read(d, buf, 1599, 2), -EINVAL);
@@ -69,6 +72,9 @@ static void bad_checksum_is_read_only(void) {
   CHECK_EQ(vimg_dc42_open(&io, &d), 0);
   if (d) {
     CHECK_EQ(vimg_dc42_checksum_ok(d), 0);
+    CHECK_EQ(vimg_dc42_writable(d), 0);
+    uint32_t st = 0, ca = 0; CHECK_EQ(vimg_dc42_sums(d, &st, &ca), 0);
+    CHECK_EQ(st, get32(p + 0x48)); CHECK_EQ(ca, sum(p + 84, 1600 * 512)); CHECK(st != ca);
     uint8_t s[512] = { 0 }; CHECK_EQ(vimg_dc42_write(d, s, 0, 1), -EROFS);
     CHECK_EQ(vimg_dc42_read(d, s, 0, 1), 0);
     vimg_dc42_close(d);
@@ -79,7 +85,7 @@ static void bad_checksum_is_read_only(void) {
 static void read_only_io(void) {
   size_t n; uint8_t *p = mk(1600, 0, 1, &n); mem_buf m = { p, n }; vimg_io io = mem_io(&m, 0); vimg_dc42 *d = NULL;
   CHECK_EQ(vimg_dc42_open(&io, &d), 0);
-  if (d) { uint8_t s[512] = { 0 }; CHECK_EQ(vimg_dc42_write(d, s, 0, 1), -EROFS); vimg_dc42_close(d); }
+  if (d) { uint8_t s[512] = { 0 }; CHECK_EQ(vimg_dc42_writable(d), 0); CHECK_EQ(vimg_dc42_write(d, s, 0, 1), -EROFS); vimg_dc42_close(d); }
   free(p);
 }
 

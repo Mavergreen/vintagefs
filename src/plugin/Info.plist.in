@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>VintageImages</string>
+	<key>CFBundleIdentifier</key>
+	<string>dev.mavergreen.vintagefs.plugin</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>vintagefs</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>@VERSION@</string>
+	<key>CFBundleVersion</key>
+	<string>@VERSION@</string>
+	<key>CFPlugInDynamicRegistration</key>
+	<string>NO</string>
+	<key>CFPlugInFactories</key>
+	<dict>
+		<key>@FACTORY@</key>
+		<string>VintageImagesFactory</string>
+	</dict>
+	<key>CFPlugInTypes</key>
+	<dict>
+		<key>E3BAA440-86F6-11D5-BB6C-00306541BA86</key>
+		<array>
+			<string>@FACTORY@</string>
+		</array>
+	</dict>
+	<key>LSMinimumSystemVersion</key>
+	<string>10.9.5</string>
+</dict>
+</plist>

@@ -52,8 +52,10 @@ int vimg_dc42_read(vimg_dc42 *d, void *buf, uint64_t sector, uint64_t count) {
   return d->io.pread(d->io.ctx, buf, (size_t)(count * 512), HDR + sector * 512);
 }
 
+int vimg_dc42_writable(const vimg_dc42 *d) { return d->io.pwrite && d->sum_ok; }
+
 int vimg_dc42_write(vimg_dc42 *d, const void *buf, uint64_t sector, uint64_t count) {
-  if (!d->io.pwrite || !d->sum_ok) return -EROFS;
+  if (!vimg_dc42_writable(d)) return -EROFS;
   if (!in_range(d, sector, count)) return -EINVAL;
   d->dirty = 1;
   return d->io.pwrite(d->io.ctx, buf, (size_t)(count * 512), HDR + sector * 512);
@@ -67,6 +69,14 @@ int vimg_dc42_flush(vimg_dc42 *d) {
   b[0] = s >> 24; b[1] = s >> 16; b[2] = s >> 8; b[3] = s;
   if ((e = d->io.pwrite(d->io.ctx, b, 4, 0x48))) return e;
   d->dirty = 0; return 0;
+}
+
+int vimg_dc42_sums(vimg_dc42 *d, uint32_t *stored, uint32_t *calculated) {
+  uint8_t b[4];
+  int e = d->io.pread(d->io.ctx, b, 4, 0x48);
+  if (e) return e;
+  *stored = be32(b);
+  return data_sum(&d->io, d->data, calculated);
 }
 
 void vimg_dc42_close(vimg_dc42 *d) { if (d) { vimg_dc42_flush(d); free(d); } }
