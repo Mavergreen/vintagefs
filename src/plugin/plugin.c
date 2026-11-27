@@ -211,13 +211,12 @@ static void set_sum(CChecksum *c, uint32_t v) { uint8_t be[4] = { v >> 24, v >> 
 /* platform: verify asks for the stored checksum, then for one calculated into a new checksum of its kind; DiskCopy 4.2
  *           has its own kind (CDC42Checksum); NDIF's image checksum is left unchecked, a CNoneChecksum */
 static CChecksum *copy_image_checksum(void *self) {
-  instance *in = self; uint32_t stored, calculated;
+  instance *in = self; uint32_t stored; CChecksum *c = NULL;
   if (resolve_checksum()) return NULL;
-  if (!in->dc) return checksum_new(DI_CHECKSUM_NONE);
-  if (vimg_dc42_sums(in->dc, &stored, &calculated)) return NULL;
-  CChecksum *c = checksum_new(DI_CHECKSUM_DC42);
-  if (c) set_sum(c, stored);
-  TRACE("copyImageChecksum: %p, $%08X", (void *)c, stored);
+  if (in->dc && !vimg_dc42_stored_sum(in->dc, &stored) && (c = checksum_new(DI_CHECKSUM_DC42))) set_sum(c, stored);
+  /* platform: imageinfo uses this unchecked (di_interface.h, 0xb0), so a failed read still gets a CNoneChecksum */
+  if (!c) c = checksum_new(DI_CHECKSUM_NONE);
+  TRACE("copyImageChecksum: %p", (void *)c);
   return c;
 }
 static int calc_checksum(void *self, CChecksum *c) {

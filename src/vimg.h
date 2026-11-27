@@ -21,13 +21,15 @@ int vimg_dc42_checksum_ok(const vimg_dc42 *d);
 /* 1 if writes are accepted: the io writes and the checksum was good at open */
 int vimg_dc42_writable(const vimg_dc42 *d);
 int vimg_dc42_read(vimg_dc42 *d, void *buf, uint64_t sector, uint64_t count);
-/* -EROFS when the io is read-only or the checksum was bad at open */
+/* writes the sectors, then the header's data checksum; -EROFS when the io is read-only or the checksum was bad at open */
 int vimg_dc42_write(vimg_dc42 *d, const void *buf, uint64_t sector, uint64_t count);
-/* rewrites the header's data checksum when anything was written */
+/* every write already rewrote the header's data checksum, so there is nothing left to flush; 0 */
 int vimg_dc42_flush(vimg_dc42 *d);
+/* the header's stored data checksum, without reading the data */
+int vimg_dc42_stored_sum(vimg_dc42 *d, uint32_t *stored);
 /* the header's stored data checksum and one calculated from the data now; 0 or the io's error */
 int vimg_dc42_sums(vimg_dc42 *d, uint32_t *stored, uint32_t *calculated);
-/* flushes, then frees */
+/* frees */
 void vimg_dc42_close(vimg_dc42 *d);
 
 /* Finds resource (type, id) in a resource fork: the offset of its data and its length. 0 or -EINVAL. */

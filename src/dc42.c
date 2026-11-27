@@ -4,10 +4,13 @@
  *       data checksum at 0x48, tag checksum at 0x4c, disk format at 0x50, format byte at 0x51, private word 0x0100 at
  *       0x52 -- then the data, then the tags. The checksum adds each big-endian 16-bit word and rotates right by one. */
 #include <errno.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include "vimg.h"
 
-struct vimg_dc42 { vimg_io io; uint32_t data; int sum_ok, dirty; };
+/* spec: the header's checksum is rewritten with every write, under the lock, so the file is valid whenever no write is
+ *       in flight: a killed helper or a panic never leaves an image 10.9 would refuse at attach */
+struct vimg_dc42 { vimg_io io; uint32_t data; int sum_ok; pthread_mutex_t lock; };
 
 enum { HDR = 84, CHUNK = 64 * 1024 };
 
@@ -37,6 +40,7 @@ int vimg_dc42_open(const vimg_io *io, vimg_dc42 **out) {
   vimg_dc42 *d = calloc(1, sizeof *d);
   if (!d) return -ENOMEM;
   d->io = *io; d->data = ds; d->sum_ok = s == be32(h + 0x48);
+  pthread_mutex_init(&d->lock, NULL);
   *out = d; return 0;
 }
 
@@ -57,26 +61,34 @@ int vimg_dc42_writable(const vimg_dc42 *d) { return d->io.pwrite && d->sum_ok; }
 int vimg_dc42_write(vimg_dc42 *d, const void *buf, uint64_t sector, uint64_t count) {
   if (!vimg_dc42_writable(d)) return -EROFS;
   if (!in_range(d, sector, count)) return -EINVAL;
-  d->dirty = 1;
-  return d->io.pwrite(d->io.ctx, buf, (size_t)(count * 512), HDR + sector * 512);
+  uint32_t s; uint8_t b[4];
+  pthread_mutex_lock(&d->lock);
+  int e = d->io.pwrite(d->io.ctx, buf, (size_t)(count * 512), HDR + sector * 512);
+  if (!e) e = data_sum(&d->io, d->data, &s);
+  if (!e) { b[0] = s >> 24; b[1] = s >> 16; b[2] = s >> 8; b[3] = s; e = d->io.pwrite(d->io.ctx, b, 4, 0x48); }
+  pthread_mutex_unlock(&d->lock);
+  return e;
 }
 
-int vimg_dc42_flush(vimg_dc42 *d) {
-  uint32_t s; uint8_t b[4];
-  if (!d->dirty) return 0;
-  int e = data_sum(&d->io, d->data, &s);
-  if (e) return e;
-  b[0] = s >> 24; b[1] = s >> 16; b[2] = s >> 8; b[3] = s;
-  if ((e = d->io.pwrite(d->io.ctx, b, 4, 0x48))) return e;
-  d->dirty = 0; return 0;
+int vimg_dc42_flush(vimg_dc42 *d) { return 0; }
+
+int vimg_dc42_stored_sum(vimg_dc42 *d, uint32_t *stored) {
+  uint8_t b[4];
+  pthread_mutex_lock(&d->lock);
+  int e = d->io.pread(d->io.ctx, b, 4, 0x48);
+  pthread_mutex_unlock(&d->lock);
+  if (!e) *stored = be32(b);
+  return e;
 }
 
 int vimg_dc42_sums(vimg_dc42 *d, uint32_t *stored, uint32_t *calculated) {
   uint8_t b[4];
+  pthread_mutex_lock(&d->lock);
   int e = d->io.pread(d->io.ctx, b, 4, 0x48);
-  if (e) return e;
-  *stored = be32(b);
-  return data_sum(&d->io, d->data, calculated);
+  if (!e) e = data_sum(&d->io, d->data, calculated);
+  pthread_mutex_unlock(&d->lock);
+  if (!e) *stored = be32(b);
+  return e;
 }
 
-void vimg_dc42_close(vimg_dc42 *d) { if (d) { vimg_dc42_flush(d); free(d); } }
+void vimg_dc42_close(vimg_dc42 *d) { if (d) { pthread_mutex_destroy(&d->lock); free(d); } }

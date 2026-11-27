@@ -1,4 +1,5 @@
 /* platform: host-agnostic -- DiskCopy 4.2: valid images, writes and their checksums, then malformed headers */
+#include <pthread.h>
 #include <stdlib.h>
 #include "check.h"
 #include "mem.h"
@@ -110,7 +111,55 @@ static void malformed(void) {
   CHECK_EQ(open_mutated(m_huge), -EINVAL);
 }
 
+/* the header is current after every write, before any flush: a crash or kill then leaves a valid image */
+static void checksum_current_without_flush(void) {
+  size_t n; uint8_t *p = mk(1600, 0, 1, &n); mem_buf m = { p, n }; vimg_io io = mem_io(&m, 1); vimg_dc42 *d = NULL;
+  CHECK_EQ(vimg_dc42_open(&io, &d), 0);
+  if (d) {
+    uint8_t s[1024]; memset(s, 0x5e, sizeof s);
+    CHECK_EQ(vimg_dc42_write(d, s, 7, 2), 0);
+    CHECK_EQ(get32(p + 0x48), sum(p + 84, 1600 * 512));
+    memset(s, 0x11, sizeof s);
+    CHECK_EQ(vimg_dc42_write(d, s, 1000, 1), 0);
+    CHECK_EQ(get32(p + 0x48), sum(p + 84, 1600 * 512));
+    free(d);  /* no flush, no close: as if the process died here */
+  }
+  free(p);
+}
+
+typedef struct { vimg_dc42 *d; int k; } job;
+static void *writer(void *v) {
+  job *j = v; uint8_t s[512];
+  for (int i = 0; i < 200; i++) { memset(s, j->k * 31 + i, sizeof s); vimg_dc42_write(j->d, s, (uint64_t)(j->k * 200 + i), 1); }
+  return NULL;
+}
+static void *flusher(void *v) { for (int i = 0; i < 200; i++) vimg_dc42_flush(v); return NULL; }
+/* writes and flushes from several threads at once, as the framework may issue them */
+static void concurrent_writes_and_flushes(void) {
+  size_t n; uint8_t *p = mk(1600, 0, 1, &n); mem_buf m = { p, n }; vimg_io io = mem_io(&m, 1); vimg_dc42 *d = NULL;
+  CHECK_EQ(vimg_dc42_open(&io, &d), 0);
+  if (d) {
+    pthread_t t[5]; job j[4];
+    for (int k = 0; k < 4; k++) { j[k] = (job){ d, k }; pthread_create(&t[k], NULL, writer, &j[k]); }
+    pthread_create(&t[4], NULL, flusher, d);
+    for (int k = 0; k < 5; k++) pthread_join(t[k], NULL);
+    vimg_dc42_close(d);
+    CHECK_EQ(get32(p + 0x48), sum(p + 84, 1600 * 512));
+  }
+  free(p);
+}
+
+static void stored_sum_cheaply(void) {
+  size_t n; uint8_t *p = mk(1600, 0, 1, &n); mem_buf m = { p, n }; vimg_io io = mem_io(&m, 0); vimg_dc42 *d = NULL;
+  CHECK_EQ(vimg_dc42_open(&io, &d), 0);
+  if (d) { uint32_t st = 0; CHECK_EQ(vimg_dc42_stored_sum(d, &st), 0); CHECK_EQ(st, get32(p + 0x48)); vimg_dc42_close(d); }
+  free(p);
+}
+
 int main(void) {
+  checksum_current_without_flush();
+  concurrent_writes_and_flushes();
+  stored_sum_cheaply();
   valid_800k();
   write_updates_checksum(0, 1);
   write_updates_checksum(12, 0);  /* a 400K GCR disk: 12 tag bytes per sector */
