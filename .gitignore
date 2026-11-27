@@ -1,0 +1,7 @@
+/VERSION
+.superpowers/
+.idea/
+/out/
+._*
+.DS_Store
+/dist/

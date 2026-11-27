@@ -1,0 +1,1 @@
+dist/  # build/package-pkg.sh writes the pkg and build-info here, and release.yml the notes and feed; gitignored
