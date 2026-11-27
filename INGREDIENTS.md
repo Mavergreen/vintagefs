@@ -10,6 +10,10 @@ own upstream: the plug-in and libvimg are Mavergreen code, versioned `YYYYMMDD.N
 
 No upstream release notes: vintagefs is its own upstream.
 
+Apple's clang (`/usr/bin/clang`) builds the host unit tests only when a developer asks for sanitizers on a Mac
+(`VF_SANITIZE=1 sh tests/c/run.sh`): clang22 ships no ASan or UBSan runtime for any host. Nothing it builds is
+shipped, and CI does not use it. It goes away when clang22 carries compiler-rt's sanitizer runtimes.
+
 ## Declared state
 
 - upstream: UPSTREAM_VERSION
